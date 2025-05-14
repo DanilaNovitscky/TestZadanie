@@ -1,0 +1,5 @@
+﻿  TestZadanie.cpp
+C:\Users\Даниляр\source\repos\TestZadanie\TestZadanie\TestZadanie.cpp(133,21): warning C4309: аргумент: усечение константного значения
+C:\Users\Даниляр\source\repos\TestZadanie\TestZadanie\TestZadanie.cpp(159,40): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\Даниляр\source\repos\TestZadanie\TestZadanie\TestZadanie.cpp(174,45): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+  TestZadanie.vcxproj -> C:\Users\Даниляр\source\repos\TestZadanie\x64\Debug\TestZadanie.exe
