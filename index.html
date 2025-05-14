@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Активность пользователей</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .user {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+    .info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .screenshot-btn {
+      padding: 5px 10px;
+      margin-left: 20px;
+    }
+    .screenshot {
+      margin-top: 10px;
+      max-width: 300px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Активность пользователей</h2>
+  <div id="userList"></div>
+
+  <script>
+    const socket = new WebSocket("ws://" + location.host);
+    const userList = document.getElementById("userList");
+    const users = {};
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ type: "viewer" }));
+    };
+
+    function formatDuration(seconds) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hrs} час ${mins} мин ${secs} сек`;
+    }
+
+    socket.onmessage = function (event) {
+      const msg = JSON.parse(event.data);
+      const id = msg.id;
+
+      if (msg.type === "connected") {
+        const connectedAt = new Date(msg.connectedAt);
+
+        if (!users[id]) {
+          const div = document.createElement("div");
+          div.className = "user";
+          div.innerHTML = `
+            <div class="info">
+              <div><b>${msg.name}</b></div>
+              <div class="time">0 сек</div>
+              <button class="screenshot-btn">Скриншот</button>
+            </div>
+            <a class="screenshot-link" target="_blank" style="display:none;">
+              <img class="screenshot" src="" />
+            </a>
+          `;
+
+          const btn = div.querySelector(".screenshot-btn");
+          btn.onclick = () => {
+            socket.send(JSON.stringify({ type: "request_screenshot", id }));
+          };
+
+          users[id] = {
+            connectedAt,
+            element: div,
+            timeElement: div.querySelector(".time"),
+            screenshotLink: div.querySelector(".screenshot-link"),
+            screenshotImg: div.querySelector(".screenshot"),
+            online: true,
+            totalSeconds: 0
+          };
+
+          userList.appendChild(div);
+        } else {
+          users[id].connectedAt = connectedAt;
+          users[id].online = true;
+          users[id].element.style.opacity = 1;
+        }
+      }
+
+      if (msg.type === "disconnected") {
+        const user = users[msg.id];
+        if (user) {
+          user.connectedAt = null;
+          user.online = false;
+          user.totalSeconds += msg.duration || 0;
+          user.element.style.opacity = 0.5;
+        }
+      }
+
+      if (msg.type === "screenshot") {
+        const user = users[id];
+        if (user) {
+          user.screenshotImg.src = "data:image/png;base64," + msg.image;
+          user.screenshotLink.href = user.screenshotImg.src;
+          user.screenshotLink.style.display = "inline-block";
+        }
+      }
+    };
+
+    setInterval(() => {
+      const now = new Date();
+      for (const id in users) {
+        const user = users[id];
+        let seconds = user.totalSeconds || 0;
+
+        if (user.online && user.connectedAt) {
+          seconds += Math.floor((now - user.connectedAt) / 1000);
+        }
+
+        user.timeElement.textContent = formatDuration(seconds);
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
